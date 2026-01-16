@@ -1,9 +1,8 @@
 # llama.cpp Web UI
 
-A modern, feature-rich web interface for llama.cpp built with SvelteKit. This UI provides an intuitive chat interface with advanced file handling, conversation management, and comprehensive model interaction capabilities.
+A modern, feature-rich web interface for [llama.cpp](https://github.com/ggerganov/llama.cpp) built with SvelteKit. This UI provides an intuitive chat interface with advanced file handling, conversation management, and comprehensive model interaction capabilities.
 
 The WebUI supports two server operation modes:
-
 - **MODEL mode** - Single model operation (standard llama-server)
 - **ROUTER mode** - Multi-model operation with dynamic model loading/unloading
 
@@ -25,14 +24,12 @@ The WebUI supports two server operation modes:
 ## Features
 
 ### Chat Interface
-
 - **Streaming responses** with real-time updates
 - **Reasoning content** - Support for models with thinking/reasoning blocks
 - **Dark/light theme** with system preference detection
 - **Responsive design** for desktop and mobile
 
 ### File Attachments
-
 - **Images** - JPEG, PNG, GIF, WebP, SVG (with PNG conversion)
 - **Documents** - PDF (text extraction or image conversion for vision models)
 - **Audio** - MP3, WAV for audio-capable models
@@ -40,20 +37,17 @@ The WebUI supports two server operation modes:
 - **Drag-and-drop** and paste support with rich previews
 
 ### Conversation Management
-
 - **Branching** - Branch messages conversations at any point by editing messages or regenerating responses, navigate between branches
 - **Regeneration** - Regenerate responses with optional model switching (ROUTER mode)
 - **Import/Export** - JSON format for backup and sharing
 - **Search** - Find conversations by title or content
 
 ### Advanced Rendering
-
 - **Syntax highlighting** - Code blocks with language detection
 - **Math formulas** - KaTeX rendering for LaTeX expressions
 - **Markdown** - Full GFM support with tables, lists, and more
 
 ### Multi-Model Support (ROUTER mode)
-
 - **Model selector** with Loaded/Available groups
 - **Automatic loading** - Models load on selection
 - **Modality validation** - Prevents sending images to non-vision models
@@ -70,7 +64,6 @@ The WebUI supports two server operation modes:
 | `Ctrl/Cmd+B`       | Toggle sidebar       |
 
 ### Developer Experience
-
 - **Request tracking** - Monitor token generation with `/slots` endpoint
 - **Storybook** - Component library with visual testing
 - **Hot reload** - Instant updates during development
@@ -80,7 +73,6 @@ The WebUI supports two server operation modes:
 ## Getting Started
 
 ### Prerequisites
-
 - **Node.js** 18+ (20+ recommended)
 - **npm** 9+
 - **llama-server** running locally (for API access)
@@ -111,7 +103,6 @@ npm run dev
 ```
 
 This starts:
-
 - **Vite dev server** at `http://localhost:5173` - The main WebUI
 - **Storybook** at `http://localhost:6006` - Component documentation
 
@@ -128,7 +119,6 @@ proxy: {
 ```
 
 ### Development Workflow
-
 1. Open `http://localhost:5173` in your browser
 2. Make changes to `.svelte`, `.ts`, or `.css` files
 3. Changes hot-reload instantly
@@ -166,25 +156,19 @@ proxy: {
 ## Build Pipeline
 
 ### Development Build
-
 ```bash
 npm run dev
 ```
-
 Runs Vite in development mode with:
-
 - Hot Module Replacement (HMR)
 - Source maps
 - Proxy to llama-server
 
 ### Production Build
-
 ```bash
 npm run build
 ```
-
 The build process:
-
 1. **Vite Build** - Bundles all TypeScript, Svelte, and CSS
 2. **Static Adapter** - Outputs to `../public` (llama-server's static file directory)
 3. **Post-Build Script** - Cleans up intermediate files
@@ -201,7 +185,6 @@ tools/server/webui/        →  build  →  tools/server/public/
 ```
 
 ### SvelteKit Configuration
-
 ```javascript
 // svelte.config.js
 adapter: adapter({
@@ -216,9 +199,7 @@ output: {
 ```
 
 ### Integration with llama-server
-
 The WebUI is embedded directly into the llama-server binary:
-
 1. `npm run build` outputs `index.html.gz` to `tools/server/public/`
 2. llama-server compiles this into the binary at build time
 3. When accessing `/`, llama-server serves the gzipped HTML
@@ -237,79 +218,19 @@ Routes → Components → Hooks → Stores → Services → Storage/API
 ```
 
 ### High-Level Architecture
-
 See: [`docs/architecture/high-level-architecture-simplified.md`](docs/architecture/high-level-architecture-simplified.md)
-
-```mermaid
-flowchart TB
-    subgraph Routes["📍 Routes"]
-        R1["/ (Welcome)"]
-        R2["/chat/[id]"]
-        RL["+layout.svelte"]
-    end
-
-    subgraph Components["🧩 Components"]
-        C_Sidebar["ChatSidebar"]
-        C_Screen["ChatScreen"]
-        C_Form["ChatForm"]
-        C_Messages["ChatMessages"]
-        C_ModelsSelector["ModelsSelector"]
-        C_Settings["ChatSettings"]
-    end
-
-    subgraph Stores["🗄️ Stores"]
-        S1["chatStore"]
-        S2["conversationsStore"]
-        S3["modelsStore"]
-        S4["serverStore"]
-        S5["settingsStore"]
-    end
-
-    subgraph Services["⚙️ Services"]
-        SV1["ChatService"]
-        SV2["ModelsService"]
-        SV3["PropsService"]
-        SV4["DatabaseService"]
-    end
-
-    subgraph Storage["💾 Storage"]
-        ST1["IndexedDB"]
-        ST2["LocalStorage"]
-    end
-
-    subgraph APIs["🌐 llama-server"]
-        API1["/v1/chat/completions"]
-        API2["/props"]
-        API3["/models/*"]
-    end
-
-    R1 & R2 --> C_Screen
-    RL --> C_Sidebar
-    C_Screen --> C_Form & C_Messages & C_Settings
-    C_Screen --> S1 & S2
-    C_ModelsSelector --> S3 & S4
-    S1 --> SV1 & SV4
-    S3 --> SV2 & SV3
-    SV4 --> ST1
-    SV1 --> API1
-    SV2 --> API3
-    SV3 --> API2
-```
 
 ### Layer Breakdown
 
 #### Routes (`src/routes/`)
-
 - **`/`** - Welcome screen, creates new conversation
 - **`/chat/[id]`** - Active chat interface
 - **`+layout.svelte`** - Sidebar, navigation, global initialization
 
 #### Components (`src/lib/components/`)
-
 Components are organized in `app/` (application-specific) and `ui/` (shadcn-svelte primitives).
 
 **Chat Components** (`app/chat/`):
-
 | Component          | Responsibility                                                              |
 | ------------------ | --------------------------------------------------------------------------- |
 | `ChatScreen/`      | Main chat container, coordinates message list, input form, and attachments  |
@@ -320,7 +241,6 @@ Components are organized in `app/` (application-specific) and `ui/` (shadcn-svel
 | `ChatSidebar/`     | Conversation list, search, import/export, navigation                        |
 
 **Dialog Components** (`app/dialogs/`):
-
 | Component                       | Responsibility                                           |
 | ------------------------------- | -------------------------------------------------------- |
 | `DialogChatSettings`            | Full-screen settings configuration                       |
@@ -330,14 +250,12 @@ Components are organized in `app/` (application-specific) and `ui/` (shadcn-svel
 | `DialogConversationTitleUpdate` | Edit conversation title                                  |
 
 **Server/Model Components** (`app/server/`, `app/models/`):
-
 | Component           | Responsibility                                            |
 | ------------------- | --------------------------------------------------------- |
 | `ServerErrorSplash` | Error display when server is unreachable                  |
 | `ModelsSelector`    | Model dropdown with Loaded/Available groups (ROUTER mode) |
 
 **Shared UI Components** (`app/misc/`):
-
 | Component                        | Responsibility                                                   |
 | -------------------------------- | ---------------------------------------------------------------- |
 | `MarkdownContent`                | Markdown rendering with KaTeX, syntax highlighting, copy buttons |
@@ -346,12 +264,10 @@ Components are organized in `app/` (application-specific) and `ui/` (shadcn-svel
 | `BadgeModality`, `BadgeInfo`     | Status and capability badges                                     |
 
 #### Hooks (`src/lib/hooks/`)
-
 - **`useModelChangeValidation`** - Validates model switch against conversation modalities
 - **`useProcessingState`** - Tracks streaming progress and token generation
 
 #### Stores (`src/lib/stores/`)
-
 | Store                | Responsibility                                            |
 | -------------------- | --------------------------------------------------------- |
 | `chatStore`          | Message sending, streaming, abort control, error handling |
@@ -361,7 +277,6 @@ Components are organized in `app/` (application-specific) and `ui/` (shadcn-svel
 | `settingsStore`      | User preferences, parameter sync with server defaults     |
 
 #### Services (`src/lib/services/`)
-
 | Service                | Responsibility                                  |
 | ---------------------- | ----------------------------------------------- |
 | `ChatService`          | API calls to`/v1/chat/completions`, SSE parsing |
@@ -375,73 +290,12 @@ Components are organized in `app/` (application-specific) and `ui/` (shadcn-svel
 ## Data Flows
 
 ### MODEL Mode (Single Model)
-
 See: [`docs/flows/data-flow-simplified-model-mode.md`](docs/flows/data-flow-simplified-model-mode.md)
 
-```mermaid
-sequenceDiagram
-    participant User
-    participant UI
-    participant Stores
-    participant DB as IndexedDB
-    participant API as llama-server
-
-    Note over User,API: Initialization
-    UI->>Stores: initialize()
-    Stores->>DB: load conversations
-    Stores->>API: GET /props
-    API-->>Stores: server config
-    Stores->>API: GET /v1/models
-    API-->>Stores: single model (auto-selected)
-
-    Note over User,API: Chat Flow
-    User->>UI: send message
-    Stores->>DB: save user message
-    Stores->>API: POST /v1/chat/completions (stream)
-    loop streaming
-        API-->>Stores: SSE chunks
-        Stores-->>UI: reactive update
-    end
-    Stores->>DB: save assistant message
-```
-
 ### ROUTER Mode (Multi-Model)
-
 See: [`docs/flows/data-flow-simplified-router-mode.md`](docs/flows/data-flow-simplified-router-mode.md)
 
-```mermaid
-sequenceDiagram
-    participant User
-    participant UI
-    participant Stores
-    participant API as llama-server
-
-    Note over User,API: Initialization
-    Stores->>API: GET /props
-    API-->>Stores: {role: "router"}
-    Stores->>API: GET /models
-    API-->>Stores: models[] with status
-
-    Note over User,API: Model Selection
-    User->>UI: select model
-    alt model not loaded
-        Stores->>API: POST /models/load
-        loop poll status
-            Stores->>API: GET /models
-        end
-        Stores->>API: GET /props?model=X
-    end
-    Stores->>Stores: validate modalities
-
-    Note over User,API: Chat Flow
-    Stores->>API: POST /v1/chat/completions {model: X}
-    loop streaming
-        API-->>Stores: SSE chunks + model info
-    end
-```
-
 ### Detailed Flow Diagrams
-
 | Flow          | Description                                | File                                                        |
 | ------------- | ------------------------------------------ | ----------------------------------------------------------- |
 | Chat          | Message lifecycle, streaming, regeneration | [`chat-flow.md`](docs/flows/chat-flow.md)                   |
@@ -456,159 +310,27 @@ sequenceDiagram
 ## Architectural Patterns
 
 ### 1. Reactive State with Svelte 5 Runes
-
-All stores use Svelte 5's fine-grained reactivity:
-
-```typescript
-// Store with reactive state
-class ChatStore {
-	#isLoading = $state(false);
-	#currentResponse = $state('');
-
-	// Derived values auto-update
-	get isStreaming() {
-		return $derived(this.#isLoading && this.#currentResponse.length > 0);
-	}
-}
-
-// Exported reactive accessors
-export const isLoading = () => chatStore.isLoading;
-export const currentResponse = () => chatStore.currentResponse;
-```
+All stores use Svelte 5's fine-grained reactivity.
 
 ### 2. Unidirectional Data Flow
-
-Data flows in one direction, making state predictable:
-
-```mermaid
-flowchart LR
-    subgraph UI["UI Layer"]
-        A[User Action] --> B[Component]
-    end
-
-    subgraph State["State Layer"]
-        B --> C[Store Method]
-        C --> D[State Update]
-    end
-
-    subgraph IO["I/O Layer"]
-        C --> E[Service]
-        E --> F[API / IndexedDB]
-        F -.->|Response| D
-    end
-
-    D -->|Reactive| B
-```
-
-Components dispatch actions to stores, stores coordinate with services for I/O, and state updates reactively propagate back to the UI.
+Data flows in one direction, making state predictable.
 
 ### 3. Per-Conversation State
-
-Enables concurrent streaming across multiple conversations:
-
-```typescript
-class ChatStore {
-	chatLoadingStates = new Map<string, boolean>();
-	chatStreamingStates = new Map<string, { response: string; messageId: string }>();
-	abortControllers = new Map<string, AbortController>();
-}
-```
+Enables concurrent streaming across multiple conversations.
 
 ### 4. Message Branching with Tree Structure
-
-Conversations are stored as a tree, not a linear list:
-
-```typescript
-interface DatabaseMessage {
-	id: string;
-	parent: string | null; // Points to parent message
-	children: string[]; // List of child message IDs
-	// ...
-}
-
-interface DatabaseConversation {
-	currentNode: string; // Currently viewed branch tip
-	// ...
-}
-```
-
-Navigation between branches updates `currentNode` without losing history.
+Conversations are stored as a tree, not a linear list.
 
 ### 5. Layered Service Architecture
-
-Stores handle state; services handle I/O:
-
-```text
-┌─────────────────┐
-│     Stores      │  Business logic, state management
-├─────────────────┤
-│    Services     │  API calls, database operations
-├─────────────────┤
-│   Storage/API   │  IndexedDB, LocalStorage, HTTP
-└─────────────────┘
-```
+Stores handle state; services handle I/O.
 
 ### 6. Server Role Abstraction
-
-Single codebase handles both MODEL and ROUTER modes:
-
-```typescript
-// serverStore.ts
-get isRouterMode() {
-  return this.role === ServerRole.ROUTER;
-}
-
-// Components conditionally render based on mode
-{#if isRouterMode()}
-  <ModelsSelector />
-{/if}
-```
+Single codebase handles both MODEL and ROUTER modes.
 
 ### 7. Modality Validation
-
-Prevents sending attachments to incompatible models:
-
-```typescript
-// useModelChangeValidation hook
-const validate = (modelId: string) => {
-	const modelModalities = modelsStore.getModelModalities(modelId);
-	const conversationModalities = conversationsStore.usedModalities;
-
-	// Check if model supports all used modalities
-	if (conversationModalities.hasImages && !modelModalities.vision) {
-		return { valid: false, reason: 'Model does not support images' };
-	}
-	// ...
-};
-```
+Prevents sending attachments to incompatible models.
 
 ### 8. Persistent Storage Strategy
-
-Data is persisted across sessions using two storage mechanisms:
-
-```mermaid
-flowchart TB
-    subgraph Browser["Browser Storage"]
-        subgraph IDB["IndexedDB (Dexie)"]
-            C[Conversations]
-            M[Messages]
-        end
-        subgraph LS["LocalStorage"]
-            S[Settings Config]
-            O[User Overrides]
-            T[Theme Preference]
-        end
-    end
-
-    subgraph Stores["Svelte Stores"]
-        CS[conversationsStore] --> C
-        CS --> M
-        SS[settingsStore] --> S
-        SS --> O
-        SS --> T
-    end
-```
-
 - **IndexedDB**: Conversations and messages (large, structured data)
 - **LocalStorage**: Settings, user parameter overrides, theme (small key-value data)
 - **Memory only**: Server props, model list (fetched fresh on each session)
@@ -618,7 +340,6 @@ flowchart TB
 ## Testing
 
 ### Test Types
-
 | Type          | Tool               | Location         | Command             |
 | ------------- | ------------------ | ---------------- | ------------------- |
 | **Unit**      | Vitest             | `tests/unit/`    | `npm run test:unit` |
@@ -627,7 +348,6 @@ flowchart TB
 | **Client**    | Vitest             | `tests/client/`. | `npm run test:unit` |
 
 ### Running Tests
-
 ```bash
 # All tests
 npm run test
@@ -640,14 +360,12 @@ npm run test:ui       # Storybook visual tests
 ```
 
 ### Storybook Development
-
 ```bash
 npm run storybook     # Start Storybook dev server on :6006
 npm run build-storybook  # Build static Storybook
 ```
 
 ### Linting and Formatting
-
 ```bash
 npm run lint          # Check code style
 npm run format        # Auto-format with Prettier
@@ -685,5 +403,3 @@ tools/server/webui/
 - [llama.cpp Server README](../README.md) - Full server documentation
 - [Multimodal Documentation](../../../docs/multimodal.md) - Image and audio support
 - [Function Calling](../../../docs/function-calling.md) - Tool use capabilities
-#   w e b u i  
- 

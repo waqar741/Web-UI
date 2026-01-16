@@ -1,4 +1,5 @@
 import { getAuthHeaders } from '$lib/utils';
+import { API_BASE } from '$lib/utils/app-paths';
 
 /**
  * PropsService - Server properties management
@@ -27,7 +28,7 @@ export class PropsService {
 	 * @throws {Error} If the request fails or returns invalid data
 	 */
 	static async fetch(autoload = false): Promise<ApiLlamaCppServerProps> {
-		const url = new URL('./props', window.location.href);
+		const url = new URL(`${API_BASE}/props`, window.location.href);
 		if (!autoload) {
 			url.searchParams.set('autoload', 'false');
 		}
@@ -55,7 +56,7 @@ export class PropsService {
 	 * @throws {Error} If the request fails or returns invalid data
 	 */
 	static async fetchForModel(modelId: string, autoload = false): Promise<ApiLlamaCppServerProps> {
-		const url = new URL('./props', window.location.href);
+		const url = new URL(`${API_BASE}/props`, window.location.href);
 		url.searchParams.set('model', modelId);
 		if (!autoload) {
 			url.searchParams.set('autoload', 'false');

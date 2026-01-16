@@ -1,4 +1,5 @@
 import { base } from '$app/paths';
+import { API_BASE } from '$lib/utils/app-paths';
 import { ServerModelStatus } from '$lib/enums';
 import { getJsonHeaders } from '$lib/utils';
 
@@ -27,7 +28,7 @@ export class ModelsService {
 	 * Works in both MODEL and ROUTER modes
 	 */
 	static async list(): Promise<ApiModelListResponse> {
-		const response = await fetch(`${base}/v1/models`, {
+		const response = await fetch(`${API_BASE}${base}/v1/models`, {
 			headers: getJsonHeaders()
 		});
 
@@ -43,7 +44,7 @@ export class ModelsService {
 	 * Returns models with load status, paths, and other metadata
 	 */
 	static async listRouter(): Promise<ApiRouterModelsListResponse> {
-		const response = await fetch(`${base}/v1/models`, {
+		const response = await fetch(`${API_BASE}${base}/v1/models`, {
 			headers: getJsonHeaders()
 		});
 
@@ -70,7 +71,7 @@ export class ModelsService {
 			payload.extra_args = extraArgs;
 		}
 
-		const response = await fetch(`${base}/models/load`, {
+		const response = await fetch(`${API_BASE}${base}/models/load`, {
 			method: 'POST',
 			headers: getJsonHeaders(),
 			body: JSON.stringify(payload)
@@ -90,7 +91,7 @@ export class ModelsService {
 	 * @param modelId - Model identifier to unload
 	 */
 	static async unload(modelId: string): Promise<ApiRouterModelsUnloadResponse> {
-		const response = await fetch(`${base}/models/unload`, {
+		const response = await fetch(`${API_BASE}${base}/models/unload`, {
 			method: 'POST',
 			headers: getJsonHeaders(),
 			body: JSON.stringify({ model: modelId })

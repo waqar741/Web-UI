@@ -1,3 +1,411 @@
+PROGRESS SUMMARY - CONFIGURATION & DEPLOYMENT UPDATES
+=====================================================
+
+1. Created `vite.config.ts`
+   - Added configuration for SvelteKit, TailwindCSS, and proxy settings.
+   - Added logic for gzip compression.
+
+2. Created `src/lib/utils/app-paths.ts`
+   - Defined `API_BASE` constant to use `VITE_API_BASE_URL` from environment variables.
+
+3. Updated Service Files (`models.ts`, `props.ts`, `chat.ts`)
+   - Replaced relative API paths with `API_BASE` to support remote backend deployment (e.g., https://ai.nomineelife.com).
+
+4. Restructured `README.md`
+   - Cleaned up formatting, added standard sections (Features, Getting Started, Tech Stack), and fixed structure.
+
+-----------------------------------------------------
+FILE CONTENTS
+-----------------------------------------------------
+
+### 1. FILE: d:/hfp/webui/vite.config.ts
+-----------------------------------------------------
+import tailwindcss from '@tailwindcss/vite';
+import { sveltekit } from '@sveltejs/kit/vite';
+import * as fflate from 'fflate';
+import { readFileSync, writeFileSync, existsSync } from 'fs';
+import { resolve } from 'path';
+import { defineConfig } from 'vite';
+import devtoolsJson from 'vite-plugin-devtools-json';
+import { storybookTest } from '@storybook/addon-vitest/vitest-plugin';
+
+const GUIDE_FOR_FRONTEND = `
+`.trim();
+
+const MAX_BUNDLE_SIZE = 5000 * 1024;
+
+/**
+ * the maximum size of an embedded asset in bytes,
+ * e.g. maximum size of embedded font (see node_modules/katex/dist/fonts/*.woff2)
+ */
+const MAX_ASSET_SIZE = 32000;
+
+/** public/index.html.gz minified flag */
+const ENABLE_JS_MINIFICATION = true;
+
+function llamaCppBuildPlugin() {
+    return {
+        name: 'llamacpp:build',
+        apply: 'build' as const,
+        closeBundle() {
+            // Note: This plugin expects the original folder structure (../public)
+            // It will not run during 'npm run dev', so it is safe to leave for now.
+            setTimeout(() => {
+                try {
+                    const indexPath = resolve('../public/index.html');
+                    const gzipPath = resolve('../public/index.html.gz');
+
+                    if (!existsSync(indexPath)) return;
+
+                    let content = readFileSync(indexPath, 'utf-8');
+                    const faviconPath = resolve('static/favicon.svg');
+                    if (existsSync(faviconPath)) {
+                        const faviconContent = readFileSync(faviconPath, 'utf-8');
+                        const faviconBase64 = Buffer.from(faviconContent).toString('base64');
+                        const faviconDataUrl = `data:image/svg+xml;base64,${faviconBase64}`;
+                        content = content.replace(/href="[^"]*favicon\.svg"/g, `href="${faviconDataUrl}"`);
+                        console.log('✓ Inlined favicon.svg as base64 data URL');
+                    }
+
+                    content = content.replace(/\r/g, '');
+                    content = GUIDE_FOR_FRONTEND + '\n' + content;
+
+                    const compressed = fflate.gzipSync(Buffer.from(content, 'utf-8'), { level: 9 });
+                    
+                    // Zero out OS/time fields for deterministic builds
+                    compressed[0x4] = 0; compressed[0x5] = 0; compressed[0x6] = 0; compressed[0x7] = 0; compressed[0x9] = 0;
+
+                    if (compressed.byteLength > MAX_BUNDLE_SIZE) {
+                        throw new Error(`Bundle size is too large (${Math.ceil(compressed.byteLength / 1024)} KB).`);
+                    }
+
+                    writeFileSync(gzipPath, compressed);
+                    console.log('✓ Created index.html.gz');
+                } catch (error) {
+                    console.error('Failed to create gzip file:', error);
+                }
+            }, 100);
+        }
+    };
+}
+
+export default defineConfig({
+    resolve: {
+        alias: {
+            'katex-fonts': resolve('node_modules/katex/dist/fonts')
+        }
+    },
+    build: {
+        assetsInlineLimit: MAX_ASSET_SIZE,
+        chunkSizeWarningLimit: 3072,
+        minify: ENABLE_JS_MINIFICATION
+    },
+    css: {
+        preprocessorOptions: {
+            scss: {
+                additionalData: `
+                    $use-woff2: true;
+                    $use-woff: false;
+                    $use-ttf: false;
+                `
+            }
+        }
+    },
+    plugins: [tailwindcss(), sveltekit(), devtoolsJson(), llamaCppBuildPlugin()],
+    test: {
+        projects: [
+            {
+                extends: './vite.config.ts',
+                test: {
+                    name: 'client',
+                    environment: 'browser',
+                    browser: {
+                        enabled: true,
+                        provider: 'playwright',
+                        instances: [{ browser: 'chromium' }]
+                    },
+                    include: ['tests/client/**/*.svelte.{test,spec}.{js,ts}'],
+                    setupFiles: ['./vitest-setup-client.ts']
+                }
+            },
+            {
+                extends: './vite.config.ts',
+                test: {
+                    name: 'unit',
+                    environment: 'node',
+                    include: ['tests/unit/**/*.{test,spec}.{js,ts}']
+                }
+            },
+            {
+                extends: './vite.config.ts',
+                test: {
+                    name: 'ui',
+                    environment: 'browser',
+                    browser: {
+                        enabled: true,
+                        provider: 'playwright',
+                        instances: [{ browser: 'chromium', headless: true }]
+                    },
+                    include: ['tests/stories/**/*.stories.{js,ts,svelte}'],
+                    setupFiles: ['./.storybook/vitest.setup.ts']
+                },
+                plugins: [
+                    storybookTest({
+                        storybookScript: 'pnpm run storybook --no-open'
+                    })
+                ]
+            }
+        ]
+    },
+
+    // --- PROXY CONFIGURATION START ---
+    server: {
+        proxy: {
+            '/v1': 'http://localhost:8080',
+            '/config': 'http://localhost:8080',
+            '/props': 'http://localhost:8080',
+            '/models': 'http://localhost:8080',
+            '/slots': 'http://localhost:8080',
+            '/tokenize': 'http://localhost:8080',
+            '/detokenize': 'http://localhost:8080',
+            '/embedding': 'http://localhost:8080',
+            '/completion': 'http://localhost:8080',
+            '/health': 'http://localhost:8080',
+            '/json-schema-to-grammar.mjs': 'http://localhost:8080',
+            '/lora-adapters': 'http://localhost:8080',
+            '/metrics': 'http://localhost:8080'
+        },
+        headers: {
+            'Cross-Origin-Embedder-Policy': 'require-corp',
+            'Cross-Origin-Opener-Policy': 'same-origin'
+        }
+    }
+    // --- PROXY CONFIGURATION END ---
+});
+
+
+### 2. FILE: d:/hfp/webui/src/lib/utils/app-paths.ts
+-----------------------------------------------------
+/**
+ * Application path constants
+ */
+
+// Use the VITE_API_BASE_URL environment variable if set, otherwise fallback to empty string (relative path)
+export const API_BASE = import.meta.env.VITE_API_BASE_URL || '';
+
+
+### 3. FILE: d:/hfp/webui/src/lib/services/models.ts
+-----------------------------------------------------
+import { base } from '$app/paths';
+import { API_BASE } from '$lib/utils/app-paths';
+import { ServerModelStatus } from '$lib/enums';
+import { getJsonHeaders } from '$lib/utils';
+
+/**
+ * ModelsService - Stateless service for model management API communication
+ *
+ * This service handles communication with model-related endpoints:
+ * - `/v1/models` - OpenAI-compatible model list (MODEL + ROUTER mode)
+ * - `/models/load`, `/models/unload` - Router-specific model management (ROUTER mode only)
+ *
+ * **Responsibilities:**
+ * - List available models
+ * - Load/unload models (ROUTER mode)
+ * - Check model status (ROUTER mode)
+ *
+ * **Used by:**
+ * - modelsStore: Primary consumer for model state management
+ */
+export class ModelsService {
+	// ─────────────────────────────────────────────────────────────────────────────
+	// Listing
+	// ─────────────────────────────────────────────────────────────────────────────
+
+	/**
+	 * Fetch list of models from OpenAI-compatible endpoint
+	 * Works in both MODEL and ROUTER modes
+	 */
+	static async list(): Promise<ApiModelListResponse> {
+		const response = await fetch(`${API_BASE}${base}/v1/models`, {
+			headers: getJsonHeaders()
+		});
+
+		if (!response.ok) {
+			throw new Error(`Failed to fetch model list (status ${response.status})`);
+		}
+
+		return response.json() as Promise<ApiModelListResponse>;
+	}
+
+	/**
+	 * Fetch list of all models with detailed metadata (ROUTER mode)
+	 * Returns models with load status, paths, and other metadata
+	 */
+	static async listRouter(): Promise<ApiRouterModelsListResponse> {
+		const response = await fetch(`${API_BASE}${base}/v1/models`, {
+			headers: getJsonHeaders()
+		});
+
+		if (!response.ok) {
+			throw new Error(`Failed to fetch router models list (status ${response.status})`);
+		}
+
+		return response.json() as Promise<ApiRouterModelsListResponse>;
+	}
+
+	// ─────────────────────────────────────────────────────────────────────────────
+	// Load/Unload
+	// ─────────────────────────────────────────────────────────────────────────────
+
+	/**
+	 * Load a model (ROUTER mode)
+	 * POST /models/load
+	 * @param modelId - Model identifier to load
+	 * @param extraArgs - Optional additional arguments to pass to the model instance
+	 */
+	static async load(modelId: string, extraArgs?: string[]): Promise<ApiRouterModelsLoadResponse> {
+		const payload: { model: string; extra_args?: string[] } = { model: modelId };
+		if (extraArgs && extraArgs.length > 0) {
+			payload.extra_args = extraArgs;
+		}
+
+		const response = await fetch(`${API_BASE}${base}/models/load`, {
+			method: 'POST',
+			headers: getJsonHeaders(),
+			body: JSON.stringify(payload)
+		});
+
+		if (!response.ok) {
+			const errorData = await response.json().catch(() => ({}));
+			throw new Error(errorData.error || `Failed to load model (status ${response.status})`);
+		}
+
+		return response.json() as Promise<ApiRouterModelsLoadResponse>;
+	}
+
+	/**
+	 * Unload a model (ROUTER mode)
+	 * POST /models/unload
+	 * @param modelId - Model identifier to unload
+	 */
+	static async unload(modelId: string): Promise<ApiRouterModelsUnloadResponse> {
+		const response = await fetch(`${API_BASE}${base}/models/unload`, {
+			method: 'POST',
+			headers: getJsonHeaders(),
+			body: JSON.stringify({ model: modelId })
+		});
+
+		if (!response.ok) {
+			const errorData = await response.json().catch(() => ({}));
+			throw new Error(errorData.error || `Failed to unload model (status ${response.status})`);
+		}
+
+		return response.json() as Promise<ApiRouterModelsUnloadResponse>;
+	}
+
+	// ─────────────────────────────────────────────────────────────────────────────
+	// Status
+	// ─────────────────────────────────────────────────────────────────────────────
+
+	/**
+	 * Check if a model is loaded based on its metadata
+	 */
+	static isModelLoaded(model: ApiModelDataEntry): boolean {
+		return model.status.value === ServerModelStatus.LOADED;
+	}
+
+	/**
+	 * Check if a model is currently loading
+	 */
+	static isModelLoading(model: ApiModelDataEntry): boolean {
+		return model.status.value === ServerModelStatus.LOADING;
+	}
+}
+
+
+### 4. FILE: d:/hfp/webui/src/lib/services/props.ts
+-----------------------------------------------------
+import { getAuthHeaders } from '$lib/utils';
+import { API_BASE } from '$lib/utils/app-paths';
+
+/**
+ * PropsService - Server properties management
+ *
+ * This service handles communication with the /props endpoint to retrieve
+ * server configuration, model information, and capabilities.
+ *
+ * **Responsibilities:**
+ * - Fetch server properties from /props endpoint
+ * - Handle API authentication
+ * - Parse and validate server response
+ *
+ * **Used by:**
+ * - serverStore: Primary consumer for server state management
+ */
+export class PropsService {
+	// ─────────────────────────────────────────────────────────────────────────────
+	// Fetching
+	// ─────────────────────────────────────────────────────────────────────────────
+
+	/**
+	 * Fetches server properties from the /props endpoint
+	 *
+	 * @param autoload - If false, prevents automatic model loading (default: false)
+	 * @returns {Promise<ApiLlamaCppServerProps>} Server properties
+	 * @throws {Error} If the request fails or returns invalid data
+	 */
+	static async fetch(autoload = false): Promise<ApiLlamaCppServerProps> {
+		const url = new URL(`${API_BASE}/props`, window.location.href);
+		if (!autoload) {
+			url.searchParams.set('autoload', 'false');
+		}
+
+		const response = await fetch(url.toString(), {
+			headers: getAuthHeaders()
+		});
+
+		if (!response.ok) {
+			throw new Error(
+				`Failed to fetch server properties: ${response.status} ${response.statusText}`
+			);
+		}
+
+		const data = await response.json();
+		return data as ApiLlamaCppServerProps;
+	}
+
+	/**
+	 * Fetches server properties for a specific model (ROUTER mode)
+	 *
+	 * @param modelId - The model ID to fetch properties for
+	 * @param autoload - If false, prevents automatic model loading (default: false)
+	 * @returns {Promise<ApiLlamaCppServerProps>} Server properties for the model
+	 * @throws {Error} If the request fails or returns invalid data
+	 */
+	static async fetchForModel(modelId: string, autoload = false): Promise<ApiLlamaCppServerProps> {
+		const url = new URL(`${API_BASE}/props`, window.location.href);
+		url.searchParams.set('model', modelId);
+		if (!autoload) {
+			url.searchParams.set('autoload', 'false');
+		}
+
+		const response = await fetch(url.toString(), {
+			headers: getAuthHeaders()
+		});
+
+		if (!response.ok) {
+			throw new Error(
+				`Failed to fetch model properties: ${response.status} ${response.statusText}`
+			);
+		}
+
+		const data = await response.json();
+		return data as ApiLlamaCppServerProps;
+	}
+}
+
+### 5. FILE: d:/hfp/webui/src/lib/services/chat.ts
+-----------------------------------------------------
 import { getJsonHeaders } from '$lib/utils';
 import { AttachmentType } from '$lib/enums';
 import { API_BASE } from '$lib/utils/app-paths';
@@ -788,3 +1196,36 @@ export class ChatService {
 		onTimingsCallback(timings, promptProgress);
 	}
 }
+
+
+---
+
+## Project Structure
+
+```text
+tools/server/webui/
+├── src/
+│   ├── lib/
+│   │   ├── components/   # UI components (app/, ui/)
+│   │   ├── hooks/        # Svelte hooks
+│   │   ├── stores/       # State management
+│   │   ├── services/     # API and database services
+│   │   ├── types/        # TypeScript interfaces
+│   │   └── utils/        # Utility functions
+│   ├── routes/           # SvelteKit routes
+│   └── styles/           # Global styles
+├── static/               # Static assets
+├── tests/                # Test files
+├── docs/                 # Architecture diagrams
+│   ├── architecture/     # High-level architecture
+│   └── flows/            # Feature-specific flows
+└── .storybook/           # Storybook configuration
+```
+
+---
+
+## Related Documentation
+
+- [llama.cpp Server README](../README.md) - Full server documentation
+- [Multimodal Documentation](../../../docs/multimodal.md) - Image and audio support
+- [Function Calling](../../../docs/function-calling.md) - Tool use capabilities
