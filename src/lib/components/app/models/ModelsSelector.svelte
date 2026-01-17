@@ -10,6 +10,7 @@
 	} from '@lucide/svelte';
 	import * as Popover from '$lib/components/ui/popover';
 	import { cn } from '$lib/components/ui/utils';
+	import { API_BASE } from '$lib/utils/app-paths';
 	import {
 		modelsStore,
 		modelsLoading,
@@ -107,7 +108,7 @@
 
 	async function fetchNodes() {
 		try {
-			const response = await fetch('https://ai.nomineelife.com/api/nodes');
+			const response = await fetch(`${API_BASE}/api/nodes`);
 			if (!response.ok) throw new Error('Failed to fetch nodes');
 			nodes = await response.json();
 		} catch (error) {
@@ -122,7 +123,7 @@
 				headers['X-Target-Node'] = targetNode.address;
 			}
 
-			const response = await fetch('https://ai.nomineelife.com/v1/models', { headers });
+			const response = await fetch(`${API_BASE}/v1/models`, { headers });
 			if (!response.ok) return; 
 			
 			const data = await response.json();
