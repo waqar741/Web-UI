@@ -292,11 +292,11 @@ class ChatStore {
 		const cacheTokens = (timingData.cache_n as number) || 0;
 		const promptProgress = timingData.prompt_progress as
 			| {
-					total: number;
-					cache: number;
-					processed: number;
-					time_ms: number;
-			  }
+				total: number;
+				cache: number;
+				processed: number;
+				time_ms: number;
+			}
 			| undefined;
 
 		const contextTotal = this.getContextTotal();
@@ -1295,6 +1295,17 @@ class ChatStore {
 			const allMessages = await conversationsStore.getConversationMessages(activeConv.id);
 			const parentMessage = allMessages.find((m) => m.id === msg.parent);
 			if (!parentMessage) return;
+
+			const currentConfig = config();
+			const maxLimit = Number(currentConfig.maxResponseLimit ?? 2);
+
+			if (maxLimit > 0 && parentMessage.children.length >= maxLimit) {
+				this.showErrorDialog(
+					'server',
+					`Regeneration limit reached. You can have a maximum of ${maxLimit} responses for a single message. Delete some responses to generate new ones.`
+				);
+				return;
+			}
 
 			this.setChatLoading(activeConv.id, true);
 			this.clearChatStreaming(activeConv.id);

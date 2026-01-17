@@ -19,6 +19,7 @@ export const SETTING_CONFIG_DEFAULT: Record<string, string | number | boolean> =
 	alwaysShowSidebarOnDesktop: false,
 	autoShowSidebarOnNewChat: true,
 	autoMicOnEmpty: false,
+	maxResponseLimit: 2,
 	// make sure these default values are in sync with `common.h`
 	samplers: 'top_k;typ_p;top_p;min_p;temperature',
 	temperature: 0.8,
@@ -107,6 +108,8 @@ export const SETTING_CONFIG_INFO: Record<string, string> = {
 		'Automatically show sidebar when starting a new chat. Disable to keep the sidebar hidden until you click on it.',
 	autoMicOnEmpty:
 		'Automatically show microphone button instead of send button when textarea is empty for models with audio modality support.',
+	maxResponseLimit:
+		'Limit the number of regenerated responses (branches) allowed for a single message. Set to 2 for no limit.',
 	pyInterpreterEnabled:
 		'Enable Python interpreter using Pyodide. Allows running Python code in markdown code blocks.',
 	enableContinueGeneration:
