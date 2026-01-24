@@ -253,18 +253,7 @@
 
 	async function handleSendMessage(message: string, files?: ChatUploadedFile[]): Promise<boolean> {
 		let finalMessage = message;
-		// Check history for "Agent content" (injected path) OR actual file attachments
-		const historyHasAgent = activeMessages().some((msg) =>
-			(msg.content ?? '').includes('[System: The user has attached a file at path:') ||
-			(msg.extra && msg.extra.length > 0 && msg.extra.some(extra => 
-				// Check for PDF or JPG/JPEG files in message history
-				(extra.name && (extra.name.toLowerCase().endsWith('.pdf') || extra.name.toLowerCase().endsWith('.jpg') || extra.name.toLowerCase().endsWith('.jpeg'))) ||
-				// Also check mime type if available in your structure, but name is safer for restored history
-				(extra.type === 'pdf' || extra.type === 'image') // Fallback check, might depend on DB schema
-			))
-		);
-
-		let useAgent = historyHasAgent;
+		let useAgent = false;
 
 		// Check if we need to use the Agent (PDF or Text files present)
 		// User requested ONLY PDF and JPG to be uploaded.

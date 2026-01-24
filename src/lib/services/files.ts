@@ -12,6 +12,9 @@ export class FileService {
 
         const response = await fetch(`${API_BASE}/v1/upload`, {
             method: 'POST',
+            headers: {
+                'X-Use-Agent': 'true'
+            },
             body: formData
         });
 
