@@ -480,7 +480,8 @@ class ChatStore {
 		assistantMessage: DatabaseMessage,
 		onComplete?: (content: string) => Promise<void>,
 		onError?: (error: Error) => void,
-		modelOverride?: string | null
+		modelOverride?: string | null,
+		options?: { useAgent?: boolean }
 	): Promise<void> {
 		// Ensure model props are cached before streaming (for correct n_ctx in processing info)
 		if (isRouterMode()) {
@@ -521,6 +522,7 @@ class ChatStore {
 			allMessages,
 			{
 				...this.getApiOptions(),
+				...options,
 				...(modelOverride ? { model: modelOverride } : {}),
 				onChunk: (chunk: string) => {
 					streamedContent += chunk;
@@ -639,7 +641,11 @@ class ChatStore {
 		);
 	}
 
-	async sendMessage(content: string, extras?: DatabaseMessageExtra[]): Promise<void> {
+	async sendMessage(
+		content: string,
+		extras?: DatabaseMessageExtra[],
+		options?: { useAgent?: boolean }
+	): Promise<void> {
 		if (!content.trim() && (!extras || extras.length === 0)) return;
 		const activeConv = conversationsStore.activeConversation;
 		if (activeConv && this.isChatLoading(activeConv.id)) return;
@@ -685,7 +691,11 @@ class ChatStore {
 			conversationsStore.addMessageToActive(assistantMessage);
 			await this.streamChatCompletion(
 				conversationsStore.activeMessages.slice(0, -1),
-				assistantMessage
+				assistantMessage,
+				undefined,
+				undefined,
+				null,
+				options
 			);
 		} catch (error) {
 			if (this.isAbortError(error)) {

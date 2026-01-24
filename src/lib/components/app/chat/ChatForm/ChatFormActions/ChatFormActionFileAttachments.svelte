@@ -56,73 +56,25 @@
 		</DropdownMenu.Trigger>
 
 		<DropdownMenu.Content align="start" class="w-48">
-			<Tooltip.Root>
-				<Tooltip.Trigger class="w-full">
-					<DropdownMenu.Item
-						class="images-button flex cursor-pointer items-center gap-2"
-						disabled={!hasVisionModality}
-						onclick={() => handleFileUpload(FileTypeCategory.IMAGE)}
-					>
-						<FILE_TYPE_ICONS.image class="h-4 w-4" />
+			<DropdownMenu.Item
+				class="images-button flex cursor-pointer items-center gap-2"
+				onclick={() => handleFileUpload(FileTypeCategory.IMAGE)}
+			>
+				<FILE_TYPE_ICONS.image class="h-4 w-4" />
 
-						<span>Images</span>
-					</DropdownMenu.Item>
-				</Tooltip.Trigger>
+				<span>Images</span>
+			</DropdownMenu.Item>
 
-				{#if !hasVisionModality}
-					<Tooltip.Content>
-						<p>Images require vision models to be processed</p>
-					</Tooltip.Content>
-				{/if}
-			</Tooltip.Root>
-
-			<Tooltip.Root>
-				<Tooltip.Trigger class="w-full">
-					<DropdownMenu.Item
-						class="audio-button flex cursor-pointer items-center gap-2"
-						disabled={!hasAudioModality}
-						onclick={() => handleFileUpload(FileTypeCategory.AUDIO)}
-					>
-						<FILE_TYPE_ICONS.audio class="h-4 w-4" />
-
-						<span>Audio Files</span>
-					</DropdownMenu.Item>
-				</Tooltip.Trigger>
-
-				{#if !hasAudioModality}
-					<Tooltip.Content>
-						<p>Audio files require audio models to be processed</p>
-					</Tooltip.Content>
-				{/if}
-			</Tooltip.Root>
+			<!-- Audio and Text options removed as per user request -->
 
 			<DropdownMenu.Item
 				class="flex cursor-pointer items-center gap-2"
-				onclick={() => handleFileUpload(FileTypeCategory.TEXT)}
+				onclick={() => handleFileUpload(FileTypeCategory.PDF)}
 			>
-				<FILE_TYPE_ICONS.text class="h-4 w-4" />
+				<FILE_TYPE_ICONS.pdf class="h-4 w-4" />
 
-				<span>Text Files</span>
+				<span>PDF Files</span>
 			</DropdownMenu.Item>
-
-			<Tooltip.Root>
-				<Tooltip.Trigger class="w-full">
-					<DropdownMenu.Item
-						class="flex cursor-pointer items-center gap-2"
-						onclick={() => handleFileUpload(FileTypeCategory.PDF)}
-					>
-						<FILE_TYPE_ICONS.pdf class="h-4 w-4" />
-
-						<span>PDF Files</span>
-					</DropdownMenu.Item>
-				</Tooltip.Trigger>
-
-				{#if !hasVisionModality}
-					<Tooltip.Content>
-						<p>PDFs will be converted to text. Image-based PDFs may not work properly.</p>
-					</Tooltip.Content>
-				{/if}
-			</Tooltip.Root>
 		</DropdownMenu.Content>
 	</DropdownMenu.Root>
 </div>

@@ -149,22 +149,17 @@
 	}
 
 	function getAcceptStringForFileType(fileType: FileTypeCategory): string {
+		// User restricted to ONLY PDF and JPG
 		switch (fileType) {
 			case FileTypeCategory.IMAGE:
-				return [...Object.values(FileExtensionImage), ...Object.values(MimeTypeImage)].join(',');
-
-			case FileTypeCategory.AUDIO:
-				return [...Object.values(FileExtensionAudio), ...Object.values(MimeTypeAudio)].join(',');
+				return '.jpg,.jpeg,image/jpeg';
 
 			case FileTypeCategory.PDF:
-				return [...Object.values(FileExtensionPdf), ...Object.values(MimeTypeApplication)].join(
-					','
-				);
-
-			case FileTypeCategory.TEXT:
-				return [...Object.values(FileExtensionText), MimeTypeText.PLAIN].join(',');
+				return '.pdf,application/pdf';
 
 			default:
+				// Return empty or null to prevent other types?
+				// Or better yet, we just don't support them.
 				return '';
 		}
 	}

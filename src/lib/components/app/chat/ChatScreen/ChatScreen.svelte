@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { afterNavigate } from '$app/navigation';
+	import { FileService } from '$lib/services';
 	import {
 		ChatForm,
 		ChatScreenHeader,
@@ -251,6 +252,54 @@
 	}
 
 	async function handleSendMessage(message: string, files?: ChatUploadedFile[]): Promise<boolean> {
+		let finalMessage = message;
+		// Check history for "Agent content" (injected path) OR actual file attachments
+		const historyHasAgent = activeMessages().some((msg) =>
+			(msg.content ?? '').includes('[System: The user has attached a file at path:') ||
+			(msg.extra && msg.extra.length > 0 && msg.extra.some(extra => 
+				// Check for PDF or JPG/JPEG files in message history
+				(extra.name && (extra.name.toLowerCase().endsWith('.pdf') || extra.name.toLowerCase().endsWith('.jpg') || extra.name.toLowerCase().endsWith('.jpeg'))) ||
+				// Also check mime type if available in your structure, but name is safer for restored history
+				(extra.type === 'pdf' || extra.type === 'image') // Fallback check, might depend on DB schema
+			))
+		);
+
+		let useAgent = historyHasAgent;
+
+		// Check if we need to use the Agent (PDF or Text files present)
+		// User requested ONLY PDF and JPG to be uploaded.
+		// We treat JPG as Agent candidate as well now.
+		const agentCandidates = files?.filter(
+			(f) =>
+				f.file.type === 'application/pdf' ||
+				f.file.type === 'image/jpeg' ||
+				f.file.type === 'image/jpg' ||
+				f.file.name.toLowerCase().endsWith('.pdf') ||
+				f.file.name.toLowerCase().endsWith('.jpg') ||
+				f.file.name.toLowerCase().endsWith('.jpeg')
+		);
+
+		if (files && agentCandidates && agentCandidates.length > 0) {
+			useAgent = true;
+			// If Agent mode is triggered, we upload ALL files to ensure the Agent has access to paths
+			// even for images if it needs them.
+			try {
+				const uploadPromises = files.map((f) => FileService.uploadFile(f.file));
+				const paths = await Promise.all(uploadPromises);
+
+				// Append paths to message
+				const pathContext = paths
+					.map((path) => `\n\n[System: The user has attached a file at path: ${path}]`)
+					.join('');
+				finalMessage += pathContext;
+			} catch (error) {
+				console.error('Failed to upload files for Agent:', error);
+				// TODO: Show error to user? For now fall back or just log
+				// We keep useAgent=true but maybe it will fail if path is missing.
+				// But we continue to try.
+			}
+		}
+
 		const result = files
 			? await parseFilesToMessageExtras(files, activeModelId ?? undefined)
 			: undefined;
@@ -273,7 +322,8 @@
 			userScrolledUp = false;
 			autoScrollEnabled = true;
 		}
-		await chatStore.sendMessage(message, extras);
+		
+		await chatStore.sendMessage(finalMessage, extras, { useAgent });
 		scrollChatToBottom();
 
 		return true;
@@ -292,7 +342,9 @@
 		}
 
 		// Use model-specific capabilities for file validation
-		const capabilities = { hasVision: hasVisionModality, hasAudio: hasAudioModality };
+		// We force capabilities to TRUE for Vision and PDF/Text because the Agent handles these files,
+		// regardless of the specific LLM selected in the UI.
+		const capabilities = { hasVision: true, hasAudio: hasAudioModality };
 		const { supportedFiles, unsupportedFiles, modalityReasons } = filterFilesByModalities(
 			generallySupported,
 			capabilities
