@@ -30,6 +30,8 @@ export class FileService {
             return data.path;
         } else if (typeof data.file_path === 'string') {
             return data.file_path;
+        } else if (typeof data.filename === 'string') {
+            return data.filename;
         }
 
         throw new Error('Invalid response format from upload endpoint');

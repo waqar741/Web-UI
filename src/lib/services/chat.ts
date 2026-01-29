@@ -164,6 +164,10 @@ export class ChatService {
 
 		if (timings_per_token !== undefined) requestBody.timings_per_token = timings_per_token;
 
+		if (options.file_attachment) {
+			requestBody.file_attachment = options.file_attachment;
+		}
+
 		if (custom) {
 			try {
 				const customParams = typeof custom === 'string' ? JSON.parse(custom) : custom;
@@ -193,6 +197,8 @@ export class ChatService {
 				body: JSON.stringify(requestBody),
 				signal
 			});
+
+
 
 			if (!response.ok) {
 				const error = await ChatService.parseErrorResponse(response);

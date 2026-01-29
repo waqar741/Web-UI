@@ -252,6 +252,7 @@
 	}
 
 	async function handleSendMessage(message: string, files?: ChatUploadedFile[]): Promise<boolean> {
+
 		let finalMessage = message;
 		let useAgent = false;
 
@@ -268,6 +269,9 @@
 				f.file.name.toLowerCase().endsWith('.jpeg')
 		);
 
+		// Extract the first file path if available to pass as file_attachment
+		let fileAttachmentPath: string | undefined;
+		
 		if (files && agentCandidates && agentCandidates.length > 0) {
 			useAgent = true;
 			// If Agent mode is triggered, we upload ALL files to ensure the Agent has access to paths
@@ -276,11 +280,11 @@
 				const uploadPromises = files.map((f) => FileService.uploadFile(f.file));
 				const paths = await Promise.all(uploadPromises);
 
-				// Append paths to message
-				const pathContext = paths
-					.map((path) => `\n\n[System: The user has attached a file at path: ${path}]`)
-					.join('');
-				finalMessage += pathContext;
+				if (paths.length > 0) {
+					fileAttachmentPath = paths[0];
+				}
+
+
 			} catch (error) {
 				console.error('Failed to upload files for Agent:', error);
 				// TODO: Show error to user? For now fall back or just log
@@ -312,7 +316,7 @@
 			autoScrollEnabled = true;
 		}
 		
-		await chatStore.sendMessage(finalMessage, extras, { useAgent });
+		await chatStore.sendMessage(finalMessage, extras, { useAgent, file_attachment: fileAttachmentPath });
 		scrollChatToBottom();
 
 		return true;

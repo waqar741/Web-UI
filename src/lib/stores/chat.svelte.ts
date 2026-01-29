@@ -481,7 +481,7 @@ class ChatStore {
 		onComplete?: (content: string) => Promise<void>,
 		onError?: (error: Error) => void,
 		modelOverride?: string | null,
-		options?: { useAgent?: boolean }
+		options?: { useAgent?: boolean; file_attachment?: string }
 	): Promise<void> {
 		// Ensure model props are cached before streaming (for correct n_ctx in processing info)
 		if (isRouterMode()) {
@@ -644,7 +644,7 @@ class ChatStore {
 	async sendMessage(
 		content: string,
 		extras?: DatabaseMessageExtra[],
-		options?: { useAgent?: boolean }
+		options?: { useAgent?: boolean; file_attachment?: string }
 	): Promise<void> {
 		if (!content.trim() && (!extras || extras.length === 0)) return;
 		const activeConv = conversationsStore.activeConversation;
