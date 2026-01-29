@@ -77,6 +77,11 @@
 					key: 'askForTitleConfirmation',
 					label: 'Ask for confirmation before changing conversation title',
 					type: 'checkbox'
+				},
+				{
+					key: 'maxResponseLimit',
+					label: 'Max regeneration responses (branches)',
+					type: 'input'
 				}
 			]
 		},
@@ -321,6 +326,7 @@
 			'min_p',
 			'max_tokens',
 			'pasteLongTextToFileLen',
+			'maxResponseLimit',
 			'dynatemp_range',
 			'dynatemp_exponent',
 			'typ_p',

@@ -3,7 +3,7 @@ import { sveltekit } from '@sveltejs/kit/vite';
 import * as fflate from 'fflate';
 import { readFileSync, writeFileSync, existsSync } from 'fs';
 import { resolve } from 'path';
-import { defineConfig } from 'vite';
+import { defineConfig, loadEnv } from 'vite';
 import devtoolsJson from 'vite-plugin-devtools-json';
 import { storybookTest } from '@storybook/addon-vitest/vitest-plugin';
 
@@ -67,96 +67,112 @@ function llamaCppBuildPlugin() {
     };
 }
 
-export default defineConfig({
-    resolve: {
-        alias: {
-            'katex-fonts': resolve('node_modules/katex/dist/fonts')
-        }
-    },
-    build: {
-        assetsInlineLimit: MAX_ASSET_SIZE,
-        chunkSizeWarningLimit: 3072,
-        minify: ENABLE_JS_MINIFICATION
-    },
-    css: {
-        preprocessorOptions: {
-            scss: {
-                additionalData: `
+export default defineConfig(({ mode }) => {
+    const env = loadEnv(mode, process.cwd(), '');
+    const target = env.VITE_PROXY_TARGET || 'http://localhost:8080';
+
+    const proxyPaths = [
+        '/v1',
+        '/config',
+        '/props',
+        '/models',
+        '/slots',
+        '/tokenize',
+        '/detokenize',
+        '/embedding',
+        '/completion',
+        '/health',
+        '/json-schema-to-grammar.mjs',
+        '/lora-adapters',
+        '/metrics',
+        '/api'
+    ];
+
+    const proxy: Record<string, any> = {};
+    for (const path of proxyPaths) {
+        proxy[path] = {
+            target,
+            changeOrigin: true
+        };
+    }
+
+    return {
+        resolve: {
+            alias: {
+                'katex-fonts': resolve('node_modules/katex/dist/fonts')
+            }
+        },
+        build: {
+            assetsInlineLimit: MAX_ASSET_SIZE,
+            chunkSizeWarningLimit: 3072,
+            minify: ENABLE_JS_MINIFICATION
+        },
+        css: {
+            preprocessorOptions: {
+                scss: {
+                    additionalData: `
                     $use-woff2: true;
                     $use-woff: false;
                     $use-ttf: false;
                 `
-            }
-        }
-    },
-    plugins: [tailwindcss(), sveltekit(), devtoolsJson(), llamaCppBuildPlugin()],
-    test: {
-        projects: [
-            {
-                extends: './vite.config.ts',
-                test: {
-                    name: 'client',
-                    environment: 'browser',
-                    browser: {
-                        enabled: true,
-                        provider: 'playwright',
-                        instances: [{ browser: 'chromium' }]
-                    },
-                    include: ['tests/client/**/*.svelte.{test,spec}.{js,ts}'],
-                    setupFiles: ['./vitest-setup-client.ts']
                 }
-            },
-            {
-                extends: './vite.config.ts',
-                test: {
-                    name: 'unit',
-                    environment: 'node',
-                    include: ['tests/unit/**/*.{test,spec}.{js,ts}']
-                }
-            },
-            {
-                extends: './vite.config.ts',
-                test: {
-                    name: 'ui',
-                    environment: 'browser',
-                    browser: {
-                        enabled: true,
-                        provider: 'playwright',
-                        instances: [{ browser: 'chromium', headless: true }]
-                    },
-                    include: ['tests/stories/**/*.stories.{js,ts,svelte}'],
-                    setupFiles: ['./.storybook/vitest.setup.ts']
-                },
-                plugins: [
-                    storybookTest({
-                        storybookScript: 'pnpm run storybook --no-open'
-                    })
-                ]
             }
-        ]
-    },
-
-    // --- PROXY CONFIGURATION START ---
-    server: {
-        proxy: {
-            '/v1': 'http://localhost:8080',
-            '/config': 'http://localhost:8080',
-            '/props': 'http://localhost:8080',
-            '/models': 'http://localhost:8080',
-            '/slots': 'http://localhost:8080',
-            '/tokenize': 'http://localhost:8080',
-            '/detokenize': 'http://localhost:8080',
-            '/embedding': 'http://localhost:8080',
-            '/completion': 'http://localhost:8080',
-            '/health': 'http://localhost:8080',
-            '/json-schema-to-grammar.mjs': 'http://localhost:8080',
-            '/lora-adapters': 'http://localhost:8080',
-            '/metrics': 'http://localhost:8080'
         },
-        headers: {
-            'Cross-Origin-Embedder-Policy': 'require-corp',
-            'Cross-Origin-Opener-Policy': 'same-origin'
+        plugins: [tailwindcss(), sveltekit(), devtoolsJson(), llamaCppBuildPlugin()],
+        test: {
+            projects: [
+                {
+                    extends: './vite.config.ts',
+                    test: {
+                        name: 'client',
+                        environment: 'browser',
+                        browser: {
+                            enabled: true,
+                            provider: 'playwright',
+                            instances: [{ browser: 'chromium' }]
+                        },
+                        include: ['tests/client/**/*.svelte.{test,spec}.{js,ts}'],
+                        setupFiles: ['./vitest-setup-client.ts']
+                    }
+                },
+                {
+                    extends: './vite.config.ts',
+                    test: {
+                        name: 'unit',
+                        environment: 'node',
+                        include: ['tests/unit/**/*.{test,spec}.{js,ts}']
+                    }
+                },
+                {
+                    extends: './vite.config.ts',
+                    test: {
+                        name: 'ui',
+                        environment: 'browser',
+                        browser: {
+                            enabled: true,
+                            provider: 'playwright',
+                            instances: [{ browser: 'chromium', headless: true }]
+                        },
+                        include: ['tests/stories/**/*.stories.{js,ts,svelte}'],
+                        setupFiles: ['./.storybook/vitest.setup.ts']
+                    },
+                    plugins: [
+                        storybookTest({
+                            storybookScript: 'pnpm run storybook --no-open'
+                        })
+                    ]
+                }
+            ]
+        },
+
+        // --- PROXY CONFIGURATION START ---
+        server: {
+            proxy,
+            headers: {
+                'Cross-Origin-Embedder-Policy': 'require-corp',
+                'Cross-Origin-Opener-Policy': 'same-origin'
+            }
         }
-    }
-    // --- PROXY CONFIGURATION END ---
+        // --- PROXY CONFIGURATION END ---
+    };
 });

@@ -292,11 +292,11 @@ class ChatStore {
 		const cacheTokens = (timingData.cache_n as number) || 0;
 		const promptProgress = timingData.prompt_progress as
 			| {
-					total: number;
-					cache: number;
-					processed: number;
-					time_ms: number;
-			  }
+				total: number;
+				cache: number;
+				processed: number;
+				time_ms: number;
+			}
 			| undefined;
 
 		const contextTotal = this.getContextTotal();
@@ -480,7 +480,8 @@ class ChatStore {
 		assistantMessage: DatabaseMessage,
 		onComplete?: (content: string) => Promise<void>,
 		onError?: (error: Error) => void,
-		modelOverride?: string | null
+		modelOverride?: string | null,
+		options?: { useAgent?: boolean }
 	): Promise<void> {
 		// Ensure model props are cached before streaming (for correct n_ctx in processing info)
 		if (isRouterMode()) {
@@ -521,6 +522,7 @@ class ChatStore {
 			allMessages,
 			{
 				...this.getApiOptions(),
+				...options,
 				...(modelOverride ? { model: modelOverride } : {}),
 				onChunk: (chunk: string) => {
 					streamedContent += chunk;
@@ -639,7 +641,11 @@ class ChatStore {
 		);
 	}
 
-	async sendMessage(content: string, extras?: DatabaseMessageExtra[]): Promise<void> {
+	async sendMessage(
+		content: string,
+		extras?: DatabaseMessageExtra[],
+		options?: { useAgent?: boolean }
+	): Promise<void> {
 		if (!content.trim() && (!extras || extras.length === 0)) return;
 		const activeConv = conversationsStore.activeConversation;
 		if (activeConv && this.isChatLoading(activeConv.id)) return;
@@ -685,7 +691,11 @@ class ChatStore {
 			conversationsStore.addMessageToActive(assistantMessage);
 			await this.streamChatCompletion(
 				conversationsStore.activeMessages.slice(0, -1),
-				assistantMessage
+				assistantMessage,
+				undefined,
+				undefined,
+				null,
+				options
 			);
 		} catch (error) {
 			if (this.isAbortError(error)) {
@@ -1295,6 +1305,17 @@ class ChatStore {
 			const allMessages = await conversationsStore.getConversationMessages(activeConv.id);
 			const parentMessage = allMessages.find((m) => m.id === msg.parent);
 			if (!parentMessage) return;
+
+			const currentConfig = config();
+			const maxLimit = Number(currentConfig.maxResponseLimit ?? 2);
+
+			if (maxLimit > 0 && parentMessage.children.length >= maxLimit) {
+				this.showErrorDialog(
+					'server',
+					`Regeneration limit reached. You can have a maximum of ${maxLimit} responses for a single message. Delete some responses to generate new ones.`
+				);
+				return;
+			}
 
 			this.setChatLoading(activeConv.id, true);
 			this.clearChatStreaming(activeConv.id);

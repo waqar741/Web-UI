@@ -98,7 +98,8 @@ export class ChatService {
 			.map((msg) => {
 				if ('id' in msg && 'convId' in msg && 'timestamp' in msg) {
 					const dbMsg = msg as DatabaseMessage & { extra?: DatabaseMessageExtra[] };
-					return ChatService.convertDbMessageToApiChatMessageData(dbMsg);
+					// @ts-ignore
+					return ChatService.convertDbMessageToApiChatMessageData(dbMsg, options.useAgent);
 				} else {
 					return msg as ApiChatMessageData;
 				}
@@ -178,6 +179,12 @@ export class ChatService {
 			// Inject Target Node if selected
 			if (targetNode.address) {
 				headers['X-Target-Node'] = targetNode.address;
+			}
+
+			// Inject Agent Header if requested
+			// @ts-ignore - useAgent is not strictly typed yet but we pass it
+			if (options.useAgent) {
+				headers['X-Use-Agent'] = 'true';
 			}
 
 			const response = await fetch(`${API_BASE}/v1/chat/completions`, {
@@ -586,9 +593,10 @@ export class ChatService {
 	 * @static
 	 */
 	static convertDbMessageToApiChatMessageData(
-		message: DatabaseMessage & { extra?: DatabaseMessageExtra[] }
+		message: DatabaseMessage & { extra?: DatabaseMessageExtra[] },
+		suppressAttachments = false
 	): ApiChatMessageData {
-		if (!message.extra || message.extra.length === 0) {
+		if (suppressAttachments || !message.extra || message.extra.length === 0) {
 			return {
 				role: message.role as 'user' | 'assistant' | 'system',
 				content: message.content
